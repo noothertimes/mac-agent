@@ -23,7 +23,7 @@ macOS grants Accessibility permission to the *app that launches* the helper: the
 
 | Area | Read-only | Actions (logged) |
 |---|---|---|
-| UI tree | `list_apps`, `frontmost`, `get_tree`, `find`, `get_element`, `read_text`, `wait_for` | `press`, `set_value`, `focus`, `perform_action` |
+| UI tree | `list_apps`, `frontmost`, `get_tree`, `find`, `get_element`, `read_text`, `wait_for` | `press`, `find_and_press`, `batch`, `set_value`, `focus`, `perform_action` |
 | Input | | `type_text`, `key` (e.g. `cmd+shift+t`), `click`, `scroll` |
 | Apps, menus, windows | `menu` with `list: true` | `open_app` (optional `url`), `activate`, `menu` ("File > Export…"), `window` (move, resize, minimize, fullscreen, close) |
 | Events | `watch` (app events, or `"notifications"` for banner text), `unwatch`, `get_events` (long-poll) | |

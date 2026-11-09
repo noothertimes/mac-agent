@@ -43,6 +43,8 @@ public final class MacTools: ToolProvider {
         case "find": return try ReadTools.find(args)
         case "get_element": return try ReadTools.element(args)
         case "press": return try ActionTools.press(args)
+        case "find_and_press": return try ActionTools.findAndPress(args)
+        case "batch": return try batch(args)
         case "set_value": return try ActionTools.setValue(args)
         case "focus": return try ActionTools.focus(args)
         case "perform_action": return try ActionTools.perform(args)
@@ -68,6 +70,33 @@ public final class MacTools: ToolProvider {
         default: throw ToolFailure("Unknown tool: \(name)")
         }
     }
+
+    private func batch(_ args: Args) throws -> ToolResult {
+        guard let steps = args.raw["steps"] as? [JSONObject] else {
+            throw ToolFailure("Give steps: an array of {tool, args}.")
+        }
+        let watched = try args.string("watch_app").map { try Args(["app": $0]).app() }
+        let before = try watched.map { try ReadTools.windowLines($0) }
+        let outcome = try BatchRunner.run(steps: steps) { self.call(name: $0, arguments: $1) }
+        var lines = outcome.lines
+        if let watched, let before {
+            lines += changeReport(for: watched, before: before, settle: args.double("settle"))
+        }
+        return ToolResult(lines.joined(separator: "\n"), isError: outcome.failed)
+    }
+
+    private func changeReport(for app: NSRunningApplication, before: [String], settle: Double?) -> [String] {
+        let seconds = min(max(settle ?? Self.defaultSettle, 0), Self.maxSettle)
+        usleep(useconds_t(seconds * 1_000_000))
+        guard let after = try? ReadTools.windowLines(app) else {
+            return ["Could not read \(Apps.describe(app)) afterwards (its window may have closed)."]
+        }
+        let changes = TextDiff.changes(before: before, after: after)
+        return changes.isEmpty ? ["No visible text changed."] : ["Changes:"] + changes
+    }
+
+    static let defaultSettle = 0.5
+    static let maxSettle = 5.0
 
     /// Tools that don't touch the Accessibility API.
     static let permissionFree: Set<String> = [

@@ -17,6 +17,26 @@ enum ActionTools {
         return ToolResult("No AXPress, clicked centre instead: \(label)")
     }
 
+    static func findAndPress(_ args: Args) throws -> ToolResult {
+        let app = try args.app()
+        let text = try args.required("text")
+        guard !text.isEmpty else { throw ToolFailure("text must not be empty.") }
+        let matches = ElementSearch.run(
+            pid: app.processIdentifier, query: text, role: args.string("role"), limit: ReadTools.defaultFindLimit
+        )
+        switch ElementPicker.pick(matches, text: text, index: args.int("index")) {
+        case .picked(let node):
+            return try press(Args(["id": node.id.description]))
+        case .none:
+            let where_ = args.int("index").map { " at index \($0)" } ?? ""
+            throw ToolFailure("Nothing pressed: no element in \(Apps.describe(app)) matches \"\(text)\"\(where_).")
+        case .ambiguous(let options):
+            let lines = options.enumerated().map { "\($0.offset): " + NodeFormatter.line($0.element, depth: 0) }
+            throw ToolFailure("Nothing pressed: \"\(text)\" matches \(options.count) elements. Retry with index or role:\n"
+                + lines.joined(separator: "\n"))
+        }
+    }
+
     static func setValue(_ args: Args) throws -> ToolResult {
         let (id, element) = try args.element()
         let text = try args.required("text")

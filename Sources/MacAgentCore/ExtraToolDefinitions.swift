@@ -39,6 +39,20 @@ enum ExtraToolDefinitions {
     ]
 
     static let control: [JSONObject] = [
+        Def.tool("find_and_press",
+                 "Find an element by text and press it in one call. Prefers an exact match and refuses to guess: if several elements fit, nothing is pressed and they are listed; retry with index or role.",
+                 ["app": appArg, "text": ["type": "string"], "role": ["type": "string"],
+                  "index": ["type": "integer", "description": "0-based choice from the list a refused call printed."]],
+                 required: ["text"], readOnly: false),
+        Def.tool("batch",
+                 "Run up to 25 tool calls in order and return one line each, stopping at the first failure. With watch_app, also report only the text that changed in that app's window.",
+                 ["steps": ["type": "array", "description": "Each item is {tool, args}.",
+                            "items": ["type": "object",
+                                      "properties": ["tool": ["type": "string"], "args": ["type": "object"]],
+                                      "required": ["tool"]]],
+                  "watch_app": ["type": "string"],
+                  "settle": ["type": "number", "description": "Seconds to wait before re-reading watch_app. Default 0.5, max 5."]],
+                 required: ["steps"], readOnly: false),
         Def.tool("menu", "Click a menu bar item by path, e.g. \"File > Export…\". With list=true or no path, list items at that level (with shortcuts).",
                  ["app": appArg, "path": ["type": "string"], "list": ["type": "boolean"]], readOnly: false),
         Def.tool("window", "List an app's windows, or move/resize/minimize/restore/fullscreen/exit_fullscreen/raise/close window `index` (default 0).",

@@ -88,6 +88,12 @@ enum ReadTools {
         return ToolResult("\(Apps.describe(app)):\n" + String(texts.joined(separator: "\n").prefix(maxChars)))
     }
 
+    /// The focused window's readable text, one item per line, for before/after comparison.
+    static func windowLines(_ app: NSRunningApplication) throws -> [String] {
+        let roots = try rootElements(pid: app.processIdentifier, scope: "focused_window").map(\.1)
+        return TextCollector.collect(from: roots, maxVisited: textVisitCap, maxChars: defaultTextChars)
+    }
+
     static func waitFor(_ args: Args) throws -> ToolResult {
         let app = try args.app()
         let text = try args.required("text")
