@@ -40,7 +40,11 @@ enum ReadTools {
         case "menubar":
             return kids.filter { role($0.element) == kAXMenuBarRole }.map { ($0.offset, $0.element) }
         case "windows":
-            return kids.filter { role($0.element) != kAXMenuBarRole }.map { ($0.offset, $0.element) }
+            let windows = kids.filter { role($0.element) != kAXMenuBarRole }
+            guard !windows.isEmpty else {
+                throw ToolFailure("App has no open window here (it may be on another desktop or minimised). Try menubar, or window action=list.")
+            }
+            return windows.map { ($0.offset, $0.element) }
         case "focused_window":
             if let focused = AX.element(root, kAXFocusedWindowAttribute),
                let match = kids.first(where: { CFEqual($0.element, focused) }) {
@@ -66,6 +70,37 @@ enum ReadTools {
         }
         let lines = matches.map { NodeFormatter.line($0, depth: 0) }
         return ToolResult("\(matches.count) match(es) in \(Apps.describe(app)):\n" + lines.joined(separator: "\n"))
+    }
+
+    static let defaultTextChars = 15_000
+    static let textVisitCap = 20_000
+    static let defaultWait: Double = 10
+    static let maxWait: Double = 60
+    static let pollInterval: useconds_t = 400_000
+
+    static func readText(_ args: Args) throws -> ToolResult {
+        let app = try args.app()
+        let scope = args.string("scope") ?? "focused_window"
+        let roots = try rootElements(pid: app.processIdentifier, scope: scope).map(\.1)
+        let maxChars = min(max(args.int("max_chars") ?? defaultTextChars, 200), 100_000)
+        let texts = TextCollector.collect(from: roots, maxVisited: textVisitCap, maxChars: maxChars)
+        guard !texts.isEmpty else { return ToolResult("No readable text in \(Apps.describe(app)) (\(scope)).") }
+        return ToolResult("\(Apps.describe(app)):\n" + String(texts.joined(separator: "\n").prefix(maxChars)))
+    }
+
+    static func waitFor(_ args: Args) throws -> ToolResult {
+        let app = try args.app()
+        let text = try args.required("text")
+        let timeout = min(max(args.double("timeout") ?? defaultWait, 0), maxWait)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            let found = ElementSearch.run(pid: app.processIdentifier, query: text, role: args.string("role"), limit: 5)
+            if !found.isEmpty {
+                return ToolResult("Appeared:\n" + found.map { NodeFormatter.line($0, depth: 0) }.joined(separator: "\n"))
+            }
+            usleep(pollInterval)
+        } while Date() < deadline
+        throw ToolFailure("\"\(text)\" did not appear in \(Apps.describe(app)) within \(Int(timeout))s.")
     }
 
     static func element(_ args: Args) throws -> ToolResult {

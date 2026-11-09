@@ -20,7 +20,9 @@ enum ToolDefinitions {
         ]
     }
 
-    static let all: [JSONObject] = [
+    static let all: [JSONObject] = core + ExtraToolDefinitions.all
+
+    static let core: [JSONObject] = [
         tool("check_permission",
              "Check whether this helper has macOS Accessibility permission. prompt=true opens the system dialog.",
              ["prompt": ["type": "boolean"]], readOnly: true),
@@ -61,8 +63,8 @@ enum ToolDefinitions {
              ], readOnly: false),
         tool("scroll", "Scroll by lines (dy>0 = up, dy<0 = down), optionally over element `id`.",
              ["dx": ["type": "integer"], "dy": ["type": "integer"], "id": idArg], readOnly: false),
-        tool("open_app", "Launch or bring forward an app by name or bundle id.",
-             ["app": ["type": "string"]], required: ["app"], readOnly: false),
+        tool("open_app", "Launch or bring forward an app by name or bundle id; with `url`, open that URL or file in it.",
+             ["app": ["type": "string"], "url": ["type": "string"]], required: ["app"], readOnly: false),
         tool("activate", "Bring a running app to the front.", ["app": appArg], required: ["app"], readOnly: false),
     ]
 

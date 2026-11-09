@@ -99,7 +99,7 @@ enum ActionTools {
     }
 
     static func openApp(_ args: Args) throws -> ToolResult {
-        let outcome = Apps.open(try args.required("app"))
+        let outcome = Apps.open(try args.required("app"), url: args.string("url"))
         guard outcome.ok else { throw ToolFailure(outcome.message) }
         return ToolResult(outcome.message)
     }

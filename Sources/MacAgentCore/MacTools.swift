@@ -19,7 +19,7 @@ public final class MacTools: ToolProvider {
         if isAction && readOnlyMode {
             return ToolResult("Refused: mac-agent is in read-only mode (MAC_AGENT_READONLY=1).", isError: true)
         }
-        if name != "check_permission" && name != "list_apps" && !AX.isTrusted(prompt: false) {
+        if !Self.permissionFree.contains(name) && !AX.isTrusted(prompt: false) {
             return ToolResult(Self.permissionHelp, isError: true)
         }
         let result: ToolResult
@@ -52,9 +52,28 @@ public final class MacTools: ToolProvider {
         case "scroll": return try ActionTools.scroll(args)
         case "open_app": return try ActionTools.openApp(args)
         case "activate": return try ActionTools.activate(args)
+        case "watch": return try EventTools.watch(args)
+        case "unwatch": return try EventTools.unwatch(args)
+        case "get_events": return EventTools.getEvents(args)
+        case "read_text": return try ReadTools.readText(args)
+        case "wait_for": return try ReadTools.waitFor(args)
+        case "menu": return try WindowMenuTools.menu(args)
+        case "window": return try WindowMenuTools.window(args)
+        case "clipboard_get": return SystemTools.clipboardGet()
+        case "clipboard_set": return try SystemTools.clipboardSet(args)
+        case "run_script": return try SystemTools.runScript(args)
+        case "browser_tabs": return try SystemTools.browserTabs(args)
+        case "browser_js": return try SystemTools.browserJS(args)
+        case "ocr": return try SystemTools.ocr(args)
         default: throw ToolFailure("Unknown tool: \(name)")
         }
     }
+
+    /// Tools that don't touch the Accessibility API.
+    static let permissionFree: Set<String> = [
+        "check_permission", "list_apps", "get_events", "clipboard_get", "clipboard_set",
+        "run_script", "browser_tabs", "browser_js",
+    ]
 
     static let permissionHelp = """
         No Accessibility permission. Open System Settings > Privacy & Security > Accessibility and \

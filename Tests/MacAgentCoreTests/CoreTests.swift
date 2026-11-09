@@ -199,3 +199,47 @@ final class ToolDefinitionTests: XCTestCase {
         XCTAssertTrue(result.text.contains("read-only"))
     }
 }
+
+final class HelperTests: XCTestCase {
+    func testMenuShortcutFormatting() {
+        XCTAssertEqual(MenuShortcut.format(key: "S", modifiers: 0), "⌘S")
+        XCTAssertEqual(MenuShortcut.format(key: "S", modifiers: 1), "⇧⌘S")
+        XCTAssertEqual(MenuShortcut.format(key: "F", modifiers: 4 | 2), "⌃⌥⌘F")
+        XCTAssertEqual(MenuShortcut.format(key: "X", modifiers: 8), "X")
+    }
+
+    func testAppleScriptQuotingEscapesSpecials() {
+        XCTAssertEqual(Script.quote(#"say "hi" \ now"#), #""say \"hi\" \\ now""#)
+        XCTAssertEqual(Script.quote("a\nb\tc"), #""a\nb\tc""#)
+    }
+
+    func testMenuTitleNormalization() {
+        XCTAssertEqual(WindowMenuTools.normalize("  Export…"), "export...")
+    }
+
+    func testScriptRunsAndReportsErrors() throws {
+        XCTAssertEqual(try Script.run("return 2 + 3", javaScript: false, timeout: 10).text, "5")
+        XCTAssertEqual(try Script.run("[1,2].length", javaScript: true, timeout: 10).text, "2")
+        XCTAssertThrowsError(try Script.run("this is not applescript (", javaScript: false, timeout: 10))
+    }
+
+    func testEveryToolIsDispatchedAndNamesAreUnique() {
+        let names = ToolDefinitions.all.compactMap { $0["name"] as? String }
+        XCTAssertEqual(names.count, Set(names).count)
+        // Read-only mode refuses actions before they run; skip tools that capture the screen or wait.
+        let tools = MacTools(readOnlyMode: true, log: ActionLog(url: nil))
+        for name in names where !["ocr", "wait_for", "get_events"].contains(name) {
+            XCTAssertFalse(tools.call(name: name, arguments: [:]).text.hasPrefix("Unknown tool"), name)
+        }
+    }
+}
+
+final class TextCollectorTests: XCTestCase {
+    func testReadableStripsIconGlyphsAndZeroWidth() {
+        XCTAssertEqual(TextCollector.readable("\u{EA60}"), "")
+        XCTAssertEqual(TextCollector.readable("\u{200B}  \n"), "")
+        XCTAssertEqual(TextCollector.readable("\u{EA60} Explorer\u{200B}"), "Explorer")
+        XCTAssertEqual(TextCollector.readable("—"), "")
+        XCTAssertEqual(TextCollector.readable("42"), "42")
+    }
+}

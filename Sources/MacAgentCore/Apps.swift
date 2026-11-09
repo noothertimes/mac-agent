@@ -25,11 +25,11 @@ enum Apps {
     }
 
     /// Launches (or brings forward) an app with `open`, which avoids async NSWorkspace callbacks.
-    static func open(_ nameOrBundle: String) -> (ok: Bool, message: String) {
+    static func open(_ nameOrBundle: String, url: String? = nil) -> (ok: Bool, message: String) {
         let looksLikeBundle = nameOrBundle.contains(".") && !nameOrBundle.contains(" ")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments = looksLikeBundle ? ["-b", nameOrBundle] : ["-a", nameOrBundle]
+        process.arguments = (looksLikeBundle ? ["-b", nameOrBundle] : ["-a", nameOrBundle]) + (url.map { ["--", $0] } ?? [])
         let errors = Pipe()
         process.standardError = errors
         do {
@@ -42,7 +42,7 @@ enum Apps {
             let detail = String(data: errors.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
             return (false, "open failed: \(detail.trimmingCharacters(in: .whitespacesAndNewlines))")
         }
-        return (true, "Opened \(nameOrBundle)")
+        return (true, "Opened \(nameOrBundle)" + (url.map { " with \($0)" } ?? ""))
     }
 
     static func describe(_ app: NSRunningApplication) -> String {
