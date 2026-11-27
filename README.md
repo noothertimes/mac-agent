@@ -9,7 +9,11 @@ An MCP server that lets Claude read and control macOS apps through the **Accessi
 
 ## Build and register
 
+Needs Xcode or the Command Line Tools (`xcode-select --install`).
+
 ```sh
+git clone https://github.com/noothertimes/mac-agent.git ~/mac-agent
+cd ~/mac-agent
 swift build -c release
 swift test
 claude mcp add --scope user mac-agent -- ~/mac-agent/.build/release/mac-agent
@@ -17,7 +21,7 @@ claude mcp add --scope user mac-agent -- ~/mac-agent/.build/release/mac-agent
 
 ## Permission
 
-macOS grants Accessibility permission to the *app that launches* the helper: the terminal or editor running Claude Code (currently VS Code). Turn it on under System Settings → Privacy & Security → Accessibility, then restart that app. The `check_permission` tool reports the status, and `prompt: true` opens the dialog.
+macOS grants Accessibility permission to the *app that launches* the helper: the terminal or editor running Claude Code (Terminal, iTerm, VS Code...). Turn it on under System Settings → Privacy & Security → Accessibility, then restart that app. The `check_permission` tool reports the status, and `prompt: true` opens the dialog.
 
 ## Tools (31)
 
@@ -49,3 +53,7 @@ Apps that draw their own UI (games, canvas apps, some cross-platform toolkits) e
 ## Next
 
 - Remote access from the iPhone (Tailscale + small control server) so the Mac can be kept awake, put to sleep or driven while away.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
